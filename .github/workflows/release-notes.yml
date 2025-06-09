@@ -50,7 +50,11 @@ jobs:
             -H "Authorization: Bearer $SAMBANOVA_API_KEY" \
             -H "Content-Type: application/json" \
             -d "$json_payload" | jq -r '.choices[0].message.content')
-          echo "RELEASE_BODY=$body" >> $GITHUB_ENV
+          # Guardar el contenido en un archivo temporal y exportar correctamente la variable multilínea
+          echo "$body" > release_body.txt
+          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
+          cat release_body.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Crear Release en GitHub
         uses: softprops/action-gh-release@v1
