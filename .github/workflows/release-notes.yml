@@ -29,9 +29,11 @@ jobs:
           else
             commits=$(git log ${{ steps.lasttag.outputs.tag }}..HEAD --pretty=format:"- %s")
           fi
-          echo "COMMITS<<EOF" >> $GITHUB_ENV
-          echo "$commits" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "COMMITS<<EOF"
+            echo "$commits"
+            echo "EOF"
+          } >> $GITHUB_ENV
 
       - name: Resumir commits con SambaNova
         id: resumen
@@ -59,9 +61,11 @@ jobs:
 }
 EOF
           | jq -r '.choices[0].message.content')
-          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
-          echo "$body" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "RELEASE_BODY<<EOF"
+            echo "$body"
+            echo "EOF"
+          } >> $GITHUB_ENV
 
       - name: Crear Release en GitHub
         uses: softprops/action-gh-release@v1
