@@ -25,15 +25,10 @@ jobs:
         id: changelog
         run: |
           if [ -z "${{ steps.lasttag.outputs.tag }}" ]; then
-            commits=$(git log --pretty=format:"- %s")
+            echo "COMMITS=$(git log --pretty=format:'- %s')" >> $GITHUB_ENV
           else
-            commits=$(git log ${{ steps.lasttag.outputs.tag }}..HEAD --pretty=format:"- %s")
+            echo "COMMITS=$(git log ${{ steps.lasttag.outputs.tag }}..HEAD --pretty=format:'- %s')" >> $GITHUB_ENV
           fi
-          {
-            echo "COMMITS<<EOF"
-            echo "$commits"
-            echo "EOF"
-          } >> $GITHUB_ENV
 
       - name: Resumir commits con SambaNova
         id: resumen
@@ -41,31 +36,21 @@ jobs:
           SAMBANOVA_API_KEY: ${{ secrets.SAMBANOVA_API_KEY }}
           COMMITS: ${{ env.COMMITS }}
         run: |
+          json_payload=$(jq -n \
+            --arg commits "$COMMITS" \
+            '{
+              stream: false,
+              model: "DeepSeek-R1-0528",
+              messages: [
+                {role: "system", content: "Eres un asistente útil que genera notas de versión profesionales en español a partir de mensajes de commit."},
+                {role: "user", content: "Resume estos commits para una nota de versión:\n\($commits)"}
+              ]
+            }')
           body=$(curl -s -X POST https://api.sambanova.ai/v1/chat/completions \
             -H "Authorization: Bearer $SAMBANOVA_API_KEY" \
             -H "Content-Type: application/json" \
-            -d @- <<EOF
-{
-  "stream": false,
-  "model": "DeepSeek-R1-0528",
-  "messages": [
-    {
-      "role": "system",
-      "content": "Eres un asistente útil que genera notas de versión profesionales en español a partir de mensajes de commit."
-    },
-    {
-      "role": "user",
-      "content": "Resume estos commits para una nota de versión:\n$COMMITS"
-    }
-  ]
-}
-EOF
-          | jq -r '.choices[0].message.content')
-          {
-            echo "RELEASE_BODY<<EOF"
-            echo "$body"
-            echo "EOF"
-          } >> $GITHUB_ENV
+            -d "$json_payload" | jq -r '.choices[0].message.content')
+          echo "RELEASE_BODY=$body" >> $GITHUB_ENV
 
       - name: Crear Release en GitHub
         uses: softprops/action-gh-release@v1
