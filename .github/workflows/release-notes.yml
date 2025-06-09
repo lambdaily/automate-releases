@@ -1,4 +1,4 @@
-name: Release Notes Automático
+name: Release Notes Simple
 
 on:
   push:
@@ -6,24 +6,18 @@ on:
       - "v*"
 
 jobs:
-  release:
+  changelog:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Obtener último tag
         id: lasttag
         run: |
           echo "tag=$(git describe --tags --abbrev=0 HEAD^)" >> $GITHUB_OUTPUT
 
-      - name: Obtener commits desde el último tag
-        id: changelog
+      - name: Mostrar commits desde el último tag
         run: |
-          echo "RELEASE_BODY=$(git log ${{ steps.lasttag.outputs.tag }}..HEAD --pretty=format:'- %s')" >> $GITHUB_ENV
-
-      - name: Crear Release en GitHub
-        uses: softprops/action-gh-release@v1
-        with:
-          body: ${{ env.RELEASE_BODY }}
+          echo "Commits desde ${{ steps.lasttag.outputs.tag }} hasta HEAD:"
+          git log ${{ steps.lasttag.outputs.tag }}..HEAD --pretty=format:"- %s"
