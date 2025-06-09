@@ -1,0 +1,60 @@
+name: Generate AI Release Notes
+
+on:
+  push:
+    tags:
+      - 'v*'  # Ejecuta el flujo cuando haces push de un nuevo tag (como v1.0.0)
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Get last tag
+        id: lasttag
+        run: |
+          echo "tag=$(git describe --tags --abbrev=0 HEAD^)" >> $GITHUB_OUTPUT
+
+      - name: Get commits since last tag
+        id: commits
+        run: |
+          commits=$(git log ${{ steps.lasttag.outputs.tag }}..HEAD --pretty=format:"- %s")
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$commits" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Generate release notes with SambaNova
+        id: generate_ai
+        run: |
+          body=$(curl -s -X POST https://api.sambanova.ai/v1/chat/completions \
+            -H "Authorization: Bearer ${{ secrets.SAMBANOVA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d @- <<EOF
+{
+  "stream": false,
+  "model": "DeepSeek-R1-0528",
+  "messages": [
+    {
+      "role": "system",
+      "content": "Eres un asistente útil que genera notas de versión profesionales en español a partir de mensajes de commit."
+    },
+    {
+      "role": "user",
+      "content": "Resume estos commits para una nota de versión:\n${{ env.COMMITS }}"
+    }
+  ]
+}
+EOF
+          | jq -r '.choices[0].message.content')
+
+          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
+          echo "$body" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: ${{ env.RELEASE_BODY }}
