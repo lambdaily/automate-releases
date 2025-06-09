@@ -42,7 +42,7 @@ jobs:
               stream: false,
               model: "DeepSeek-R1-0528",
               messages: [
-                {role: "system", content: "Eres un asistente útil que genera notas de versión profesionales en español a partir de mensajes de commit."},
+                {role: "system", content: "Eres un asistente que genera únicamente el texto final de una nota de versión profesional en español a partir de los mensajes de commit proporcionados. No expliques tu razonamiento ni incluyas contexto, solo devuelve la nota de versión lista para publicar."},
                 {role: "user", content: "Resume estos commits para una nota de versión:\n\($commits)"}
               ]
             }')
@@ -50,7 +50,6 @@ jobs:
             -H "Authorization: Bearer $SAMBANOVA_API_KEY" \
             -H "Content-Type: application/json" \
             -d "$json_payload" | jq -r '.choices[0].message.content')
-          # Guardar el contenido en un archivo temporal y exportar correctamente la variable multilínea
           echo "$body" > release_body.txt
           echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
           cat release_body.txt >> $GITHUB_ENV
