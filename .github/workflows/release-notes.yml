@@ -43,7 +43,7 @@ jobs:
     },
     {
       "role": "user",
-      "content": "Resume estos commits para una nota de versión:\n${{ env.COMMITS }}"
+      "content": "Resume estos commits para una nota de versión:\n${COMMITS}"
     }
   ]
 }
